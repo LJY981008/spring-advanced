@@ -26,12 +26,12 @@ public class UserService {
     @Transactional
     public void changePassword(long userId, UserChangePasswordRequest userChangePasswordRequest) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InvalidRequestException("User not found"));
-
-        if (passwordEncoder.matches(userChangePasswordRequest.getNewPassword(), user.getPassword())) {
+        if (passwordEncoder.matches(userChangePasswordRequest.getOldPassword(), userChangePasswordRequest.getNewPassword())) {
             throw new InvalidRequestException("새 비밀번호는 기존 비밀번호와 같을 수 없습니다.");
         }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidRequestException("User not found"));
 
         if (!passwordEncoder.matches(userChangePasswordRequest.getOldPassword(), user.getPassword())) {
             throw new InvalidRequestException("잘못된 비밀번호입니다.");
