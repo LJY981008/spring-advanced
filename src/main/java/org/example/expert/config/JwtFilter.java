@@ -67,8 +67,6 @@ public class JwtFilter implements Filter {
                     httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "관리자 권한이 없습니다.");
                     return;
                 }
-                chain.doFilter(request, response);
-                return;
             }
 
             chain.doFilter(request, response);
