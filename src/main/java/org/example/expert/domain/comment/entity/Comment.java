@@ -3,6 +3,7 @@ package org.example.expert.domain.comment.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.example.expert.domain.common.entity.Timestamped;
 import org.example.expert.domain.todo.entity.Todo;
 import org.example.expert.domain.user.entity.User;
@@ -11,6 +12,7 @@ import org.example.expert.domain.user.entity.User;
 @Entity
 @NoArgsConstructor
 @Table(name = "comments")
+@Setter
 public class Comment extends Timestamped {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

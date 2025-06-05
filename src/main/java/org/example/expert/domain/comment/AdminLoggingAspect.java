@@ -34,7 +34,7 @@ public class AdminLoggingAspect {
         HttpServletRequest servletRequest = attributes.get().getRequest();
 
         String userRole = servletRequest.getHeader("User-Role");
-        if(userRole.equals(UserRole.ADMIN.name())){
+        if(!userRole.equals(UserRole.ADMIN.name())){
             throw new InvalidRequestException("관리자 권한이 없습니다");
         }
 
@@ -51,7 +51,7 @@ public class AdminLoggingAspect {
             Object result = joinPoint.proceed();
 
             String responseBody = objectMapper.writeValueAsString(result);
-            logger.info("Admin API Response - Time: {}, URL: {}, UserID: {}, RequestBody: {}",
+            logger.info("Admin API Response - Time: {}, URL: {}, UserID: {}, ResponseBody: {}",
                     System.currentTimeMillis(),
                     servletRequest.getRequestURI(),
                     userId,
