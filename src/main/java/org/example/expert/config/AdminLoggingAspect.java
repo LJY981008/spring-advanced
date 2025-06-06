@@ -1,4 +1,4 @@
-package org.example.expert.domain.common;
+package org.example.expert.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
