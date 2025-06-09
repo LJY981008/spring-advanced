@@ -12,6 +12,7 @@ import org.example.expert.domain.todo.repository.TodoRepository;
 import org.example.expert.domain.user.entity.User;
 import org.example.expert.domain.user.enums.UserRole;
 import org.example.expert.domain.user.repository.UserRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,9 +23,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.List;
 import java.util.Optional;
 
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ManagerServiceTest {
@@ -120,5 +125,133 @@ class ManagerServiceTest {
         assertNotNull(response);
         assertEquals(managerUser.getId(), response.getUser().getId());
         assertEquals(managerUser.getEmail(), response.getUser().getEmail());
+    }
+
+    @Test
+    @DisplayName("작성자 본인을 담당자로 등록할 시 예외가 발생합니다.")
+    void saveManager_self() {
+        //given
+        AuthUser authUser = new AuthUser(1L, "a@a.com", UserRole.USER);
+        User user = User.fromAuthUser(authUser);
+
+        long todoId = 1L;
+        Todo todo = new Todo("Test Title", "Test Contents", "Sunny", user);
+
+        ManagerSaveRequest managerSaveRequest = new ManagerSaveRequest(todoId);
+
+        given(todoRepository.findById(anyLong())).willReturn(Optional.of(todo));
+        given(userRepository.findById(anyLong())).willReturn(Optional.of(user));
+
+        //when & then
+        assertThatThrownBy(() -> {managerService.saveManager(authUser, todoId, managerSaveRequest);})
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("일정 작성자는 본인을 담당자로 등록할 수 없습니다.");
+    }
+
+    @Test
+    @DisplayName("매니저를 삭제합니다.")
+    void deleteManager() {
+        //given
+        long userId = 1L;
+        long todoId = 1L;
+        long managerId = 2L;
+
+        User user = new User("test@test.com", "Test1234",  UserRole.USER);
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        User managerUser = new User("test2@test.com", "Test1234",  UserRole.USER);
+        ReflectionTestUtils.setField(managerUser, "id", managerId);
+
+        Todo todo = new Todo("Test Title", "Test Contents", "Sunny", user);
+        ReflectionTestUtils.setField(todo, "id", todoId);
+
+        Manager manager = new Manager(managerUser, todo);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(todoRepository.findById(todoId)).willReturn(Optional.of(todo));
+        given(managerRepository.findById(managerId)).willReturn(Optional.of(manager));
+
+        //when
+        managerService.deleteManager(userId, todoId, managerId);
+
+        //then
+        verify(managerRepository).delete(any(Manager.class));
+    }
+
+    @Test
+    @DisplayName("로그인한 유저와 todo의 작성자가 일치하지 않으면 예외가 발생합니다.")
+    void deleteManager_invalid_writer() {
+        //given
+        long userId = 1L;
+        long todoId = 2L;
+
+        User user = new User("test@test.com", "Test1234",  UserRole.USER);
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        Todo todo = new Todo("Test Title", "Test Contents", "Sunny", new User());
+        ReflectionTestUtils.setField(todo, "id", todoId);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(todoRepository.findById(todoId)).willReturn(Optional.of(todo));
+
+        //when & then
+        assertThatThrownBy(() -> {managerService.deleteManager(userId, todoId, 3L);})
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("해당 일정을 만든 유저가 유효하지 않습니다.");
+    }
+
+    @Test
+    @DisplayName("todo의 작성자가 없으면 예외가 발생합니다.")
+    void deleteManager_not_writer() {
+        //given
+        long userId = 1L;
+        long todoId = 1L;
+
+        User user = new User("test@test.com", "Test1234",  UserRole.USER);
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        Todo todo = new Todo("Test Title", "Test Contents", "Sunny", null);
+        ReflectionTestUtils.setField(todo, "id", todoId);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(todoRepository.findById(todoId)).willReturn(Optional.of(todo));
+
+        //when & then
+        assertThatThrownBy(() -> {managerService.deleteManager(userId, todoId, 3L);})
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("해당 일정을 만든 유저가 유효하지 않습니다.");
+    }
+
+    @Test
+    @DisplayName("일정에 등록된 매니저가 아니면 예외가 발생합니다.")
+    void deleteManager_diff_manager() {
+        //given
+        long userId = 1L;
+        long todoId = 1L;
+        long managerId = 2L;
+
+        User user = new User("test@test.com", "Test1234",  UserRole.USER);
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        User managerUser = new User("test2@test.com", "Test1234",  UserRole.USER);
+        ReflectionTestUtils.setField(managerUser, "id", managerId);
+
+        Todo todo = new Todo("Test Title", "Test Contents", "Sunny", user);
+        ReflectionTestUtils.setField(todo, "id", todoId);
+
+        Todo todo2 = new Todo("Test Title", "Test Contents", "Sunny", user);
+        ReflectionTestUtils.setField(todo2, "id", 4L);
+
+
+        Manager manager = new Manager(managerUser, todo2);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(todoRepository.findById(todoId)).willReturn(Optional.of(todo));
+        given(managerRepository.findById(managerId)).willReturn(Optional.of(manager));
+
+        //when & then
+        assertThatThrownBy(() -> {managerService.deleteManager(userId, todoId, managerId);})
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("해당 일정에 등록된 담당자가 아닙니다.");
     }
 }
