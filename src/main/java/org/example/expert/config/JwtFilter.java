@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.expert.domain.user.enums.UserRole;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -49,11 +50,12 @@ public class JwtFilter implements Filter {
 
         try {
             // JWT 유효성 검사와 claims 추출
-            Claims claims = jwtUtil.extractClaims(jwt);
-            if (claims == null) {
+            Optional<Claims> oClaims = Optional.ofNullable(jwtUtil.extractClaims(jwt));
+            if (oClaims.isEmpty()) {
                 httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "잘못된 JWT 토큰입니다.");
                 return;
             }
+            Claims claims = oClaims.get();
 
             UserRole userRole = UserRole.valueOf(claims.get("userRole", String.class));
 
