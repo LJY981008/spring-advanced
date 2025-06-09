@@ -31,10 +31,9 @@ public class AdminLoggingAspect {
 
         HttpServletRequest servletRequest = attributes.get().getRequest();
 
-        String userRole = servletRequest.getHeader("User-Role");
-        if(!userRole.equals(UserRole.ADMIN.name())){
-            throw new InvalidRequestException("관리자 권한이 없습니다");
-        }
+        Optional.ofNullable(servletRequest.getHeader("User-Role"))
+                .filter(role -> role.equals(UserRole.ADMIN.name()))
+                .orElseThrow(() -> new InvalidRequestException("관리자 권한이 없습니다"));
 
         String userId = servletRequest.getHeader("User-Id");
         String requestBody = objectMapper.writeValueAsString(joinPoint.getArgs());
